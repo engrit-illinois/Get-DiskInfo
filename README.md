@@ -5,7 +5,7 @@ It calculates percent free space, and outputs the data in a convenient table to 
 
 It's intended for a fast glance at disk space health of multiple machines. It's very fast, except when it tries to contact machines which don't respond.  
 
-This is a more PowerShell-idiomatic re-write of [Get-DiskSpace](https://github.com/engrit-illinois/Get-DiskSpace). It adds support for returning data about multiple disks and volumes from individual computers, but it drops support for logging and custom highlighting of low-diskspace results.  
+This is a more PowerShell-idiomatic re-write of [Get-DiskSpace](https://github.com/engrit-illinois/Get-DiskSpace). It adds support for returning data about multiple disks and volumes from individual computers, but it drops support for logging, custom highlighting of low-diskspace results, and PowerShell 5.1.  
 
 # Requirements
 PowerShell 7+ due to the use of `ForEach-Object -Parallel`.  
