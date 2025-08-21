@@ -55,5 +55,4 @@ By default the module throws an error when run on version of PowerShell lower th
 If specified, this check is skipped.  
 
 # Notes
-- If run in a host that supports color coding (i.e. the default Powershell console), the values in the `Free space (%)` column will be colored according to the "Percent" parameters above. This is useful for quick scanning of results from many computers.
 - By mseng3. See my other projects here: https://github.com/mmseng/code-compendium.
