@@ -1,7 +1,7 @@
 # Summary
 Returns information about the disk size and free space from a list of remote computers.  
 
-It calculates percent free space, and outputs the data in a convenient table to the screen. It also optionally outputs a proper PowerSHell object, and/or a CSV file and a log.  
+It calculates percent free space, and outputs the data in a convenient table to the screen. It also optionally outputs a proper PowerShell object, and/or a CSV file and a log.  
 
 It's intended for a fast glance at disk space health of multiple machines. It's very fast, except when it tries to contact machines which don't respond.  
 
