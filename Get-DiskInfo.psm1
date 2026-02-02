@@ -30,68 +30,82 @@ function Get-DiskInfo {
 	
 	function Get-Data($comps) {
 		
-		$scriptblock = {
+		$comps | ForEach-Object -ThrottleLimit $ThrottleLimit -Parallel {
+			
 			$comp = $_
+			$OperationTimeoutSec = $using:OperationTimeoutSec
+			
+			function Get-ScriptBlock {
+				
+				$scriptBlock = {
+					param(
+						[int]$OperationTimeoutSec
+					)
 
-			function addm($property, $value, $object) {
-				$object | Add-Member -NotePropertyName $property -NotePropertyValue $value -PassThru
-			}
-			
-			function Translate-DriveType($int) {
-				# https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-logicaldisk
-				switch($int) {
-					0 { "Unknown (0)" }
-					1 { "No Root Directory (1)" }
-					2 { "Removable Disk (2)" }
-					3 { "Local Disk (3)" }
-					4 { "Network Drive (4)" }
-					5 { "Compact Disc (5)" }
-					6 { "RAM Disk (6)" }
+					function addm($property, $value, $object) {
+						$object | Add-Member -NotePropertyName $property -NotePropertyValue $value -PassThru
+					}
+					
+					function Translate-DriveType($int) {
+						# https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-logicaldisk
+						switch($int) {
+							0 { "Unknown (0)" }
+							1 { "No Root Directory (1)" }
+							2 { "Removable Disk (2)" }
+							3 { "Local Disk (3)" }
+							4 { "Network Drive (4)" }
+							5 { "Compact Disc (5)" }
+							6 { "RAM Disk (6)" }
+						}
+					}
+					
+					try {
+						$OperationTimeoutSec = $using:OperationTimeoutSec
+					}
+					catch {}
+					
+					try {
+						$diskInfo = Get-CimInstance -ClassName "Win32_LogicalDisk" -OperationTimeoutSec $OperationTimeoutSec -ErrorAction "Stop"
+					}
+					catch {
+						$err = $_.Exception.Message
+					}
+					
+					$diskInfo | ForEach-Object {
+						$diskInfo = $_
+						
+						if(-not $err) {
+							$driveType = Translate-DriveType $diskInfo.DriveType
+							$sizeGB = [math]::Round($diskInfo.Size/1GB,2)
+							$freeGB = [math]::Round($diskInfo.FreeSpace/1GB,2)
+							if(
+								($null -ne $sizeGB) -and
+								($null -ne $freeGB)
+							) { $freePercent = [math]::Round((($freeGB/$sizeGB)*100),2) }
+						}
+						
+						[PSCustomObject]@{
+							"ComputerName" = $env:ComputerName
+							"DeviceId" = $diskInfo.DeviceID
+							"VolumeName" = $diskInfo.VolumeName
+							"VolumeSerialNumber" = $diskInfo.VolumeSerialNumber
+							"DriveType" = $driveType
+							"FileSystem" = $diskInfo.FileSystem
+							"DiskSizeGB" = $sizeGB
+							"FreeSpaceGB" = $freeGB
+							"FreeSpacePercent" = $freePercent
+							"Error" = $err
+							"DiskInfo" = $diskInfo
+						}
+					}
 				}
-			}
-			
-			try {
-				$OperationTimeoutSec = $using:OperationTimeoutSec
-			}
-			catch {}
-			
-			try {
-				$diskInfo = Get-CimInstance -ClassName "Win32_LogicalDisk" -ComputerName $comp -OperationTimeoutSec $OperationTimeoutSec -ErrorAction "Stop"
-			}
-			catch {
-				$err = $_.Exception.Message
-			}
-			
-			$diskInfo | ForEach-Object {
-				$diskInfo = $_
 				
-				if(-not $err) {
-					$driveType = Translate-DriveType $diskInfo.DriveType
-					$sizeGB = [math]::Round($diskInfo.Size/1GB,2)
-					$freeGB = [math]::Round($diskInfo.FreeSpace/1GB,2)
-					if(
-						($null -ne $sizeGB) -and
-						($null -ne $freeGB)
-					) { $freePercent = [math]::Round((($freeGB/$sizeGB)*100),2) }
-				}
-				
-				[PSCustomObject]@{
-					"ComputerName" = $comp
-					"DeviceId" = $diskInfo.DeviceID
-					"VolumeName" = $diskInfo.VolumeName
-					"VolumeSerialNumber" = $diskInfo.VolumeSerialNumber
-					"DriveType" = $driveType
-					"FileSystem" = $diskInfo.FileSystem
-					"DiskSizeGB" = $sizeGB
-					"FreeSpaceGB" = $freeGB
-					"FreeSpacePercent" = $freePercent
-					"Error" = $err
-					"DiskInfo" = $diskInfo
-				}
+				$scriptBlock
 			}
+			
+			$scriptBlock = Get-ScriptBlock
+			Invoke-Command -ComputerName $_ -ScriptBlock $scriptBlock -ArgumentList $OperationTimeoutSec -ErrorAction "Stop"
 		}
-		
-		$comps | ForEach-Object -ThrottleLimit $ThrottleLimit -Parallel $scriptblock
 	}
 	
 	function Organize-Data {
