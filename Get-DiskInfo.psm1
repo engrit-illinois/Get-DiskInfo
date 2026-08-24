@@ -68,7 +68,8 @@ function Get-DiskInfo {
 						$diskInfo = Get-CimInstance -ClassName "Win32_LogicalDisk" -OperationTimeoutSec $OperationTimeoutSec -ErrorAction "Stop"
 					}
 					catch {
-						$err = $_.Exception.Message
+						$err = $_
+						$errMsg = $err.Exception.Message
 					}
 					
 					$diskInfo | ForEach-Object {
@@ -80,22 +81,24 @@ function Get-DiskInfo {
 							$freeGB = [math]::Round($diskInfo.FreeSpace/1GB,2)
 							if(
 								($null -ne $sizeGB) -and
-								($null -ne $freeGB)
+								($null -ne $freeGB) -and
+								($sizeGB -ne 0)
 							) { $freePercent = [math]::Round((($freeGB/$sizeGB)*100),2) }
+							else { $freePercent = "unknown" }
 						}
 						
 						[PSCustomObject]@{
-							"ComputerName" = $env:ComputerName
-							"DeviceId" = $diskInfo.DeviceID
-							"VolumeName" = $diskInfo.VolumeName
-							"VolumeSerialNumber" = $diskInfo.VolumeSerialNumber
-							"DriveType" = $driveType
-							"FileSystem" = $diskInfo.FileSystem
-							"DiskSizeGB" = $sizeGB
-							"FreeSpaceGB" = $freeGB
-							"FreeSpacePercent" = $freePercent
-							"Error" = $err
-							"DiskInfo" = $diskInfo
+							ComputerName = $env:ComputerName
+							DeviceId = $diskInfo.DeviceID
+							VolumeName = $diskInfo.VolumeName
+							VolumeSerialNumber = $diskInfo.VolumeSerialNumber
+							DriveType = $driveType
+							FileSystem = $diskInfo.FileSystem
+							DiskSizeGB = $sizeGB
+							FreeSpaceGB = $freeGB
+							FreeSpacePercent = $freePercent
+							Error = $errMsg
+							DiskInfo = $diskInfo
 						}
 					}
 				}
@@ -104,7 +107,17 @@ function Get-DiskInfo {
 			}
 			
 			$scriptBlock = Get-ScriptBlock
-			Invoke-Command -ComputerName $_ -ScriptBlock $scriptBlock -ArgumentList $OperationTimeoutSec -ErrorAction "Stop"
+			try {
+				Invoke-Command -ComputerName $_ -ScriptBlock $scriptBlock -ArgumentList $OperationTimeoutSec -ErrorAction "Stop"
+			}
+			catch {
+				$err = $_
+				$errMsg = $err.Exception.Message
+				[PSCustomObject]@{
+					ComputerName = $comp
+					Error = $errMsg
+				}
+			}
 		}
 	}
 	
