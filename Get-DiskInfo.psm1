@@ -130,12 +130,6 @@ function Get-DiskInfo {
 		$data | Select ComputerName,DeviceId,VolumeName,VolumeSerialNumber,DriveType,FileSystem,DiskSizeGB,FreeSpaceGB,FreeSpacePercent,Error | Format-Table
 	}
 	
-	function Return-Data($data) {
-		if($PassThru) {
-			$data
-		}
-	}
-	
 	function Validate-PsVersion {
 		if(-not $DisablePsVersionCheck) {
 			$ver = $Host.Version
@@ -150,8 +144,12 @@ function Get-DiskInfo {
 		$comps = Get-Comps
 		$data = Get-Data $comps
 		$data = Organize-Data $comps
-		Print-Data $data
-		Return-Data $data
+		if($PassThru) {
+			$data
+		}
+		else {
+			Print-Data $data
+		}
 	}
 	
 	Do-Stuff
